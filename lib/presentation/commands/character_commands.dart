@@ -22,6 +22,21 @@ final class CreateCharacterCommand
   }
 }
 
+final class UpdateCharacterCommand
+    extends ParameterizedCommand<Character, Failure, CharacterParams> {
+  final ICharacterFacadeUseCases _characterFacadeUseCases;
+
+  UpdateCharacterCommand(this._characterFacadeUseCases);
+
+  @override
+  Future<CharacterResult> execute() async {
+    if (parameter == null) {
+      return Error(InputFailure('Parametro nulo para atualizar personagem.'));
+    }
+    return await _characterFacadeUseCases.updateCharacter(parameter!);
+  }
+}
+
 final class DeleteCharacterCommand
     extends ParameterizedCommand<Character, Failure, CharacterIdParams> {
   

@@ -19,13 +19,22 @@ class CharactersViewModel {
     // dispara os commands e effects
     commands = CharactersCommandsViewModel(
       state: _state,
-      getAccountCommand: GetAllCharactersCommand(facade),
+      getAllCharactersCommand: GetAllCharactersCommand(facade),
+      getCharacterByIdCommand: GetCharacterByIdCommand(facade),
+      updateCharacterCommand: UpdateCharacterCommand(facade),
       createCharacterCommand: CreateCharacterCommand(facade),
+      deleteCharacterCommand: DeleteCharacterCommand(facade),
      );
   }
    // --- Comandos expostos ---
   GetAllCharactersCommand get getAllCharactersCommand =>
       commands.getAllCharactersCommand; 
+  GetCharacterByIdCommand get getCharacterByIdCommand =>
+      commands.getCharacterByIdCommand;
+  UpdateCharacterCommand get updateCharacterCommand =>
+      commands.updateCharacterCommand;
   CreateCharacterCommand get createCharacterCommand =>
       commands.createCharacterCommand;
+  DeleteCharacterCommand get deleteCharacterCommand =>
+      commands.deleteCharacterCommand;
 }

@@ -21,6 +21,7 @@ typedef AccountNameParams = ({String accountName});
 typedef CharacterIdParams = ({String id});
 typedef CharacterParams = ({Character character});
 
+
 /// typedefs para ser usados em componentes de UI
 typedef FormFieldControl = ({
   GlobalKey<FormFieldState> key,

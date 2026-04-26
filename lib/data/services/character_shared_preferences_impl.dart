@@ -89,4 +89,15 @@ final class CharacterSharedPreferencesService
       throw ApiLocalFailure('Erro ao salvar personagens: $e');
     }
   }
+
+  @override
+  Future<CharacterResult> updateCharacter(Character character) async {
+    final result = await saveCharacter(character);
+
+    if (result is Success) {
+      return Success(character);
+    } else {
+      return FailureResult(result.Failure)
+    }
+  }
 }

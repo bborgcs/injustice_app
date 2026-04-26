@@ -57,3 +57,18 @@ final class DeleteCharacterUseCaseImpl implements IDeleteCharacterUseCase {
     return _repository.deleteCharacter(params.id);
   }
 }
+
+final class UpdateCharacterUseCaseImpl implements IUpdateCharacterUseCase {
+  final ICharacterRepository _repository;
+
+  UpdateCharacterUseCaseImpl({required ICharacterRepository repository})
+    : _repository = repository;
+
+  @override
+  Future<CharacterResult> call(CharacterParams params) async {
+    await Future.delayed(
+      const Duration(seconds: 3),
+    ); // Simula um atraso para teste de loading
+    return _repository.updateCharacter(params.character);
+  }
+}
