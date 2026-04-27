@@ -17,34 +17,27 @@ class CharactersFab extends StatelessWidget {
           viewModel.commands.createCharacterCommand.isExecuting.value;
 
       return FloatingActionButton(
-        onPressed: isExecuting
-        ? null
-        : () {
-            showModalBottomSheet(
-              context: context,
-              builder: (_) {
-                return const CharacterCreateView(
-                  onSubmit: (character) async {
-                    viewModel.createCharacterCommand.parameter =
-                        CharacterParams(character: character);
-
-                    await viewModel.createCharacterCommand.execute();
-                  },
-                );
-              },
-            );
-          },
-        child: isExecuting
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white,
-                ),
-              )
-            : const Icon(Icons.add),
-      );
+  onPressed: isExecuting
+      ? null
+      : () {
+          showModalBottomSheet(
+            context: context,
+            builder: (_) {
+              return const CharacterCreateView();
+            },
+          );
+        },
+  child: isExecuting
+      ? const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: Colors.white,
+          ),
+        )
+      : const Icon(Icons.add),
+);
     });
   }
 }

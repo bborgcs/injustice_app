@@ -96,8 +96,14 @@ final class CharacterSharedPreferencesService
 
     if (result is Success) {
       return Success(character);
-    } else {
-      return FailureResult(result.Failure)
+      } else {
+        final failure = result.failureValueOrNull;
+
+        if (failure == null) {
+          throw Exception('Failure inesperado null');
+        }
+
+        return Error(failure);
     }
   }
 }

@@ -1,7 +1,6 @@
 import '../../core/typedefs/types_defs.dart';
 import '../../data/repositories/character_repository_interface.dart';
 import 'character_usecases_interfaces.dart';
-
 /// implementacao dos usecases relacionados a Character
 
 /// use cases para obter personagem por id

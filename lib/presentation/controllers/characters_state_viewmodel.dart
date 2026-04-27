@@ -291,4 +291,8 @@ class CharactersStateViewmodel {
     selectedAlignments.value = {};
     levelFilter.value = LevelFilter.all;
   }
+
+final errorMessage = signal<String?>(null);
+void clearError() => errorMessage.value = null;
 }
+ 

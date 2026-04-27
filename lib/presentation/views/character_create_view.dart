@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:signals_flutter/signals_flutter.dart';
+
 import '../../core/di/dependency_injection.dart';
-import '../../core/failure/failure.dart';
 import '../../core/messages/app_messages.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/typedefs/types_defs.dart';
 import '../../core/validators/empty_str_validator.dart';
 import '../../core/validators/text_field_validator.dart';
-import '../../domain/entities/character_entity.dart';
-import '../controllers/character_state_viewmodel.dart';
-import '../controllers/character_viewmodel.dart';
 
+import '../../domain/models/character_entity.dart';
+import '../controllers/characters_view_model.dart';
+import '../controllers/characters_state_viewmodel.dart';
 
-import 'package:signals_flutter/signals_flutter.dart';
-
-/// Página de cadastro de personagem
 class CharacterCreateView extends StatefulWidget {
   const CharacterCreateView({super.key});
 
@@ -22,237 +20,191 @@ class CharacterCreateView extends StatefulWidget {
 }
 
 class _CharacterCreateViewState extends State<CharacterCreateView> {
-  //late final CharacterViewModel viewModel;
+  final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
-  late final CharacterViewModel _vmCharacter;
-  late final void Function() _disposeCharacterEffect;
+  late final CharactersViewModel _vmCharacter;
+
+  final _nameController = TextEditingController();
+
+  CharacterClass? _characterClass;
+  CharacterRarity? _rarity;
+  CharacterAlignment? _alignment;
+
+  int _level = 1;
+  int _threat = 0;
+  int _attack = 0;
+  int _health = 0;
+  int _stars = 1;
+
+  DateTime _createdAt = DateTime.now();
+  String? _editingCharacterId;
+
   late final void Function() _disposeSuccessEffect;
   late final void Function() _disposeErrorEffect;
 
   @override
   void initState() {
     super.initState();
-    _formFields = CharacterFormFieldsController();
 
-    _vmCharacter = injector.get<CharacterViewModel>();
-    _vmCharacter.accountState.clearMessage();
-    _vmCharacter.accountState.clearSuccessEvent();
+    _vmCharacter = injector.get<CharactersViewModel>();
 
-    _disposeCharacterEffect =effect(() {
-      final character = _vmCharacter.accountState.characterEffect.value;
-      
-      if (character != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Personagem criado com sucesso!')),
-        );
-      } else {
-        _limparCampos();
-      }
-    });
-
-    _disposeErrorEffect = effect(() {
-      final errorMessage = _vmCharacter.characterState.errorMessage.value;
-
-        if (errorMessage != null && mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-        showSnackBar(context, errorMessage, backgroundColor: Colors.red);
-
-          _vmCharacter.characterState.clearMessage();
-        });
-        }
-    });
-
+ /*   /// SUCCESS
     _disposeSuccessEffect = effect(() {
-      final successMessage = _vmCharacter.accountState.successEvent.value;
+      final success = _vmCharacter.charactersState.successEvent.value;
 
-        if (successMessage != null && mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
+      if (success != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          String message = '';
 
-                String message;
-                Color color;
-                
-                switch (event) {
-                    case CharacterSucessEvent.created:
-                        message = 'Personagem criado com sucesso!';
-                        color = Colors.green;
-                        
-                    case CharacterSucessEvent.updated:
-                        message = 'Personagem atualizado com sucesso!';
-                        color = Colors.green;
+          switch (success) {
+            case CharacterSuccessEvent.created:
+              message = 'Personagem criado com sucesso!';
+              break;
+            case CharacterSuccessEvent.updated:
+              message = 'Personagem atualizado com sucesso!';
+              break;
+            case CharacterSuccessEvent.deleted:
+              message = 'Personagem deletado com sucesso!';
+              break;
+          }
 
-                    case CharacterSucessEvent.deleted:
-                        message = 'Personagem deletado com sucesso!';
-                        color = Colors.red.shade400;
-                }
-                showSnackBar(context, message, backgroundColor: color);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(message)));
 
-            _vmCharacter.characterState.clearSuccessEvent();
-            });
-        }
+          _vmCharacter.charactersState.clearSuccessEvent();
+        });
+      }
+    });*/
+
+    /// ERROR
+    _disposeErrorEffect = effect(() {
+      final error = _vmCharacter.charactersState.errorMessage.value;
+
+      if (error != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error)));
+
+          _vmCharacter.charactersState.clearMessage();
+        });
+      }
     });
   }
 
   @override
   void dispose() {
-    _disposeAccountEffect();
     _disposeSuccessEffect();
     _disposeErrorEffect();
-
     _scrollController.dispose();
-
-    _formFields.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
-  void _preencherCampos(Character character) {
-    _formFields.name.controller.text = character.name;
+  bool _validateForm() => _formKey.currentState!.validate();
 
-    _createdAt = character.createdAt;
-    _characterClass = character.characterClass;
-    _rarity = character.rarity;
-    _level = character.level;
-    _threat = character.threat;
-    _attack = character.attack;
-    _health = character.health;
-    _stars = character.stars;
-    _alignment = character.alignment;
+  Future<void> _salvar() async {
+    if (!_validateForm()) return;
 
-    setState(() {});
+    final character = Character(
+      id: _editingCharacterId ?? UniqueKey().toString(),
+      name: _nameController.text.trim(),
+      characterClass: _characterClass!,
+      rarity: _rarity!,
+      level: _level,
+      threat: _threat,
+      attack: _attack,
+      health: _health,
+      stars: _stars,
+      alignment: _alignment!,
+      createdAt: _createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    if (_editingCharacterId != null) {
+    _vmCharacter.commands.updateCharacterCommand.parameter =
+        (character: character);
+
+    await _vmCharacter.commands.updateCharacterCommand.execute();
+    } else {
+    _vmCharacter.commands.createCharacterCommand.parameter =
+        (character: character);
+
+    await _vmCharacter.commands.createCharacterCommand.execute();
+    }
   }
 
-    void _limparCampos() {
-        _formKey.currentState?.reset();
-        _formFields.clear();
-    
-        _createdAt = DateTime.now();
-        _characterClass = null;
-        _rarity = null;
-        _level = 1;
-        _threat = 0;
-        _attack = 0;
-        _health = 0;
-        _stars = 1;
-        _alignment = null;
-    
-        setState(() {});
-    }
+  Future<void> _excluir() async {
+    if (_editingCharacterId == null) return;
 
-    void _resetFormView() {
-        // Remove foco de qualquer TextField
-        FocusScope.of(context).unfocus();
+    _vmCharacter.commands.deleteCharacterCommand.parameter =
+        (id: _editingCharacterId!);
 
-        // Rola para o topo
-        _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        );
-    }
+    await _vmCharacter.commands.deleteCharacterCommand.execute();
+  }
 
-    void _focusFirstError() {
-        for (final field in _formFields.fields) {
-        final state = field.key.currentState;
-
-        if (state != null && !state.isValid) {
-            field.focus.requestFocus();
-
-            Scrollable.ensureVisible(
-            field.key.currentContext!,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-            );
-
-            break;
-        }
-        }
-    }
-
-    bool _validateForm() {
-        final valid = _formKey.currentState!.validate();
-
-        if (!valid) {
-        _focusFirstError();
-        }
-
-        return valid;
-    }
-
-    Future<void> _salvarPersonagem() async {
-        if (!_validateForm()) return;
-
-        Character newCharacter = Character(
-            id: _editingCharacterId ?? UniqueKey().toString(),
-            name: _formFields.name.controller.text.trim(),
-            characterClass: _characterClass!,
-            rarity: _rarity!,
-            level: _level,
-            threat: _threat,
-            attack: _attack,
-            health: _health,
-            stars: _stars,
-            alignment: _alignment!,
-            createdAt: _createdAt,
-            updatedAt: DateTime.now(),
-        );
-
-        if (_vmCharacter.characterState.hasCharacter.value) {
-            await _vmCharacter.commands.updateCharacter(newCharacter);
-        } else {
-            await _vmCharacter.commands.saveCharacter(newCharacter);
-        }
-
-        _resetFormView();
-    }
-
-    Future<void> _excluirPersonagem() async {
-        final confirm = await confirmDialog(
-        context,
-        title: 'Excluir personagem',
-        message:
-            'Tem certeza que deseja excluir este personagem?\n\n'
-            'Esta ação não poderá ser desfeita.',
-        confirmText: 'EXCLUIR',
-        );
-
-        if (!confirm) return;
-
-        await _vmCharacter.commands.deleteCharacter();
-        _formKey.currentState?.reset();
-        _formFields.clear();
-        _resetFormView();
-    }
-
-    @override
-    Widget build(BuildContext context) {
-        return Scaffold(
-        appBar: AppBar(
-            title: const Text('Criar Personagem'),
-        ),
-        body: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Personagem')),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: AppSpacing.paddingLg,
+        child: Form(
+          key: _formKey,
+          child: Column(
             children: [
-                // Formulário de criação de personagem
-                CharacterForm(onSubmit: (character) async {
-                viewModel.commands.createCharacterCommand.parameter =
-                    CharacterParams(character: character);
-
-                final result = await viewModel.commands.createCharacterCommand.execute();
-
-                result.fold(
-                    (failure) => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(AppMessages.getFailureMessage(failure))),
-                    ),
-                    (success) => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Personagem criado com sucesso!')),
-                    ),
+              /// NOME
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Nome'),
+                validator: (v) {
+                final validator = TextFieldValidator(
+                    validators: [EmptyStrValidator()],
                 );
-                }),
+
+                final isValid = validator.validations(v);
+
+                return isValid ? null : 'Nome é obrigatório';
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              /// BOTÕES
+              Row(
+                children: [
+                  Expanded(
+                    child: Watch((_) {
+                      final isLoading = _vmCharacter
+                          .commands
+                          .createCharacterCommand
+                          .isExecuting
+                          .value;
+
+                      return ElevatedButton(
+                        onPressed: isLoading ? null : _salvar,
+                        child: isLoading
+                            ? const CircularProgressIndicator()
+                            : const Text('SALVAR'),
+                      );
+                    }),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _excluir,
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red),
+                      child: const Text('EXCLUIR'),
+                    ),
+                  )
+                ],
+              )
             ],
-            ),
+          ),
         ),
-        );
-    }
-    }
+      ),
+    );
+  }
+}
