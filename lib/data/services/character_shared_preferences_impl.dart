@@ -14,10 +14,27 @@ final class CharacterSharedPreferencesService
   static const String _storageKey = 'characters';
 
   @override
-  Future<CharacterResult> deleteCharacter(String id) {
-    // TODO: implement deleteCharacter
-    throw UnimplementedError();
-  }
+    Future<CharacterResult> deleteCharacter(String id) async {
+      try {
+        final currentResult = await getAllCharacters();
+
+        return await currentResult.fold(
+          onSuccess: (characters) async {
+            final updatedList =
+                characters.where((c) => c.id != id).toList();
+
+            await _saveCharacters(updatedList);
+
+            return Success(
+              characters.firstWhere((c) => c.id == id),
+            );
+          },
+          onFailure: (failure) async => Error(failure),
+        );
+      } catch (e) {
+        return Error(ApiLocalFailure('Erro ao deletar: $e'));
+      }
+    }
 
   @override
   Future<ListCharacterResult> getAllCharacters() async {
@@ -26,7 +43,7 @@ final class CharacterSharedPreferencesService
       final result = prefs.getString(_storageKey);
 
       if (result == null || result.isEmpty) {
-        return Error(EmptyResultFailure());
+        return Success([]);
       }
 
       final decoded = jsonDecode(result) as List<dynamic>;
@@ -91,19 +108,23 @@ final class CharacterSharedPreferencesService
   }
 
   @override
-  Future<CharacterResult> updateCharacter(Character character) async {
-    final result = await saveCharacter(character);
+      Future<CharacterResult> updateCharacter(Character character) async {
+        try {
+          final currentResult = await getAllCharacters();
 
-    if (result is Success) {
-      return Success(character);
-      } else {
-        final failure = result.failureValueOrNull;
+          return await currentResult.fold(
+            onSuccess: (characters) async {
+              final updatedList = characters.map((c) {
+                return c.id == character.id ? character : c;
+              }).toList();
 
-        if (failure == null) {
-          throw Exception('Failure inesperado null');
+              await _saveCharacters(updatedList);
+              return Success(character);
+            },
+            onFailure: (failure) async => Error(failure),
+          );
+        } catch (e) {
+          return Error(ApiLocalFailure('Erro ao atualizar: $e'));
         }
-
-        return Error(failure);
-    }
-  }
-}
+      }
+ }

@@ -46,33 +46,30 @@ class CharactersCommandsViewModel {
   //   MÉTODO GENÉRICO DE OBSERVAÇÃO DE COMANDOS
   // ========================================================
   void _observeCommand<T>(
-    Command<T, Failure> command, {
-    required void Function(T data) onSuccess,
-    void Function(Failure err)? onFailure,
-  }) {
-    effect(() {
-      // 1) Ignora enquanto está executando
-      if (command.isExecuting.value) return;
+  Command<T, Failure> command, {
+  required void Function(T data) onSuccess,
+  void Function(Failure err)? onFailure,
+}) {
+  effect(() {
+    final result = command.result.value;
 
-      // 2) Ignora até existir um resultado
-      final result = command.result.value;
-      if (result == null) return;
+    if (result == null) return;
 
-      // 3) Sucesso ou falha
-      result.fold(
-        onSuccess: (data) {
-          state.clearMessage(); // sempre limpa erros em sucesso
-          onSuccess(data); // ação específica para esse comando
-          command.clear();
-        },
-        onFailure: (err) {
-          state.setMessage(err.msg); // registra o erro no estado
-          if (onFailure != null) onFailure(err);
-          command.clear();
-        },
-      );
-    });
-  }
+    result.fold(
+      onSuccess: (data) {
+        state.clearMessage();
+        onSuccess(data);
+      },
+      onFailure: (err) {
+        state.setMessage(err.msg);
+        if (onFailure != null) onFailure(err);
+      },
+    );
+
+    // 🔥 LIMPA DEPOIS, FORA DO FLOW
+    Future.microtask(() => command.clear());
+  });
+}
 
   // ========================================================
   //   OBSERVERS ESPECÍFICOS
@@ -113,17 +110,22 @@ class CharactersCommandsViewModel {
 
   /// Criar um novo personagem
   void _observeCreateCharacter() {  
-    _observeCommand<Character>(
-      _createCharacterCommand,
-      onSuccess: (newCharacter) {
-        final currentList = state.state.value;
-        final newlist = [...currentList, newCharacter]; // Adiciona o novo personagem à lista
-        state.state.value = newlist; 
-      },
-      onFailure: (err) =>
-          state.setMessage(err.msg), // registra o erro no estado
-    );
-  }
+  _observeCommand<Character>(
+    _createCharacterCommand,
+    onSuccess: (newCharacter) {
+      print('🔥 SUCCESS DISPAROU');
+
+      final currentList = state.state.value;
+      state.state.value = [...currentList, newCharacter];
+
+      state.successEvent.value = CharacterSuccessEvent.created;
+    },
+    onFailure: (err) {
+      print('❌ ERROR DISPAROU: ${err.msg}');
+      state.setMessage(err.msg);
+    },
+  );
+}
 
   /// Deletar um personagem
   void _observeDeleteCharacter() {
@@ -134,6 +136,8 @@ class CharactersCommandsViewModel {
 
         state.state.value =
             currentList.where((c) => c.id != deletedCharacter.id).toList();
+
+        state.successEvent.value = CharacterSuccessEvent.deleted;
       },
       onFailure: (err) => state.setMessage(err.msg),
     );
@@ -144,15 +148,17 @@ class CharactersCommandsViewModel {
     _observeCommand<Character>(
       _updateCharacterCommand,
       onSuccess: (updatedCharacter) {
-        final currentList = state.state.value;
+        final currentList = [...state.state.value];
 
         final index =
             currentList.indexWhere((c) => c.id == updatedCharacter.id);
 
         if (index != -1) {
           currentList[index] = updatedCharacter;
-          state.state.value = [...currentList];
+          state.state.value = currentList;
         }
+
+        state.successEvent.value = CharacterSuccessEvent.updated;
       },
       onFailure: (err) => state.setMessage(err.msg),
     );

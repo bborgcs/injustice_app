@@ -10,6 +10,7 @@ import '../../../../widgets/empty_state.dart';
 import '../../../../widgets/loading_indicator.dart';
 import '../../../../widgets/star_rating.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import '../../../character_create_view.dart';
 
 class CharactersBody extends StatelessWidget {
   final CharactersViewModel viewModel;
@@ -30,7 +31,9 @@ class CharactersBody extends StatelessWidget {
       final characters = viewModel.charactersState.sortedCharacters.value;
 
       return RefreshIndicator(
-        onRefresh: () async {},
+        onRefresh: () async {
+          await viewModel.commands.fetchCharacters();
+        },
         child: CustomScrollView(
           slivers: [
             /// Header
@@ -63,8 +66,20 @@ class CharactersBody extends StatelessWidget {
                     final character = characters[index];
                     return CharacterListItem(
                       character: character,
-                      onDelete: () {},
-                      onTap: () {},
+                      onDelete: () async {
+                        viewModel.commands.deleteCharacterCommand.parameter =
+                            (id: character.id);
+
+                        await viewModel.commands.deleteCharacterCommand.execute();
+                      },
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CharacterCreateView(character: character),
+                          ),
+                        );
+                      },
                     );
                   }, childCount: characters.length),
                 ),

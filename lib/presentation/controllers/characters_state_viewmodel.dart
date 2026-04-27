@@ -58,7 +58,19 @@ extension LevelFilterExtension on LevelFilter {
   }
 }
 
+enum CharacterSuccessEvent {
+  created,
+  updated,
+  deleted,
+}
+
 class CharactersStateViewmodel {
+
+  final successEvent = signal<CharacterSuccessEvent?>(null);
+
+void clearSuccessEvent() {
+  successEvent.value = null;
+}
   /// Estado da Lista de Personagens, inicializada como nula
   final state = Signal<List<Character>>([]);
 
@@ -294,5 +306,7 @@ class CharactersStateViewmodel {
 
 final errorMessage = signal<String?>(null);
 void clearError() => errorMessage.value = null;
+
+
 }
  

@@ -13,7 +13,9 @@ import '../controllers/characters_view_model.dart';
 import '../controllers/characters_state_viewmodel.dart';
 
 class CharacterCreateView extends StatefulWidget {
-  const CharacterCreateView({super.key});
+  final Character? character;
+
+  const CharacterCreateView({super.key, this.character});
 
   @override
   State<CharacterCreateView> createState() => _CharacterCreateViewState();
@@ -49,33 +51,51 @@ class _CharacterCreateViewState extends State<CharacterCreateView> {
 
     _vmCharacter = injector.get<CharactersViewModel>();
 
- /*   /// SUCCESS
+    if (widget.character != null) {
+      final c = widget.character!;
+
+      _editingCharacterId = c.id;
+      _nameController.text = c.name;
+      _characterClass = c.characterClass;
+      _rarity = c.rarity;
+      _alignment = c.alignment;
+      _level = c.level;
+      _threat = c.threat;
+      _attack = c.attack;
+      _health = c.health;
+      _stars = c.stars;
+      _createdAt = c.createdAt;
+    }
+
+    /// SUCCESS
     _disposeSuccessEffect = effect(() {
-      final success = _vmCharacter.charactersState.successEvent.value;
+  final success = _vmCharacter.charactersState.successEvent.value;
 
-      if (success != null && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          String message = '';
+  if (success != null && mounted) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      String message = '';
 
-          switch (success) {
-            case CharacterSuccessEvent.created:
-              message = 'Personagem criado com sucesso!';
-              break;
-            case CharacterSuccessEvent.updated:
-              message = 'Personagem atualizado com sucesso!';
-              break;
-            case CharacterSuccessEvent.deleted:
-              message = 'Personagem deletado com sucesso!';
-              break;
-          }
-
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(message)));
-
-          _vmCharacter.charactersState.clearSuccessEvent();
-        });
+      switch (success) {
+        case CharacterSuccessEvent.created:
+          message = 'Personagem criado com sucesso!';
+          break;
+        case CharacterSuccessEvent.updated:
+          message = 'Personagem atualizado com sucesso!';
+          break;
+        case CharacterSuccessEvent.deleted:
+          message = 'Personagem deletado com sucesso!';
+          break;
       }
-    });*/
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+
+      Navigator.pop(context); 
+
+      _vmCharacter.charactersState.clearSuccessEvent();
+    });
+  }
+});
 
     /// ERROR
     _disposeErrorEffect = effect(() {
@@ -104,6 +124,7 @@ class _CharacterCreateViewState extends State<CharacterCreateView> {
   bool _validateForm() => _formKey.currentState!.validate();
 
   Future<void> _salvar() async {
+    print('Salvar personagem');
     if (!_validateForm()) return;
 
     final character = Character(
@@ -131,17 +152,12 @@ class _CharacterCreateViewState extends State<CharacterCreateView> {
         (character: character);
 
     await _vmCharacter.commands.createCharacterCommand.execute();
+
+    
+print('✅ Execute terminou');
     }
   }
 
-  Future<void> _excluir() async {
-    if (_editingCharacterId == null) return;
-
-    _vmCharacter.commands.deleteCharacterCommand.parameter =
-        (id: _editingCharacterId!);
-
-    await _vmCharacter.commands.deleteCharacterCommand.execute();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,17 +186,66 @@ class _CharacterCreateViewState extends State<CharacterCreateView> {
               ),
 
               const SizedBox(height: 16),
+              /// CLASSE
+              DropdownButtonFormField<CharacterClass>(
+                value: _characterClass,
+                decoration: const InputDecoration(labelText: 'Classe'),
+                items: CharacterClass.values.map((c) {
+                  return DropdownMenuItem(
+                    value: c,
+                    child: Text(c.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _characterClass = value);
+                },
+                validator: (value) => value == null ? 'Selecione uma classe' : null,
+              ),
 
+              const SizedBox(height: 16),
+              /// RARIDADE
+              DropdownButtonFormField<CharacterRarity>(
+                value: _rarity,
+                decoration: const InputDecoration(labelText: 'Raridade'),
+                items: CharacterRarity.values.map((r) {
+                  return DropdownMenuItem(
+                    value: r,
+                    child: Text(r.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _rarity = value);
+                },
+                validator: (value) => value == null ? 'Selecione uma raridade' : null,
+              ),
+
+
+              const SizedBox(height: 16),
+              /// ALINHAMENTO
+              DropdownButtonFormField<CharacterAlignment>(
+                value: _alignment,
+                decoration: const InputDecoration(labelText: 'Alinhamento'),
+                items: CharacterAlignment.values.map((a) {
+                  return DropdownMenuItem(
+                    value: a,
+                    child: Text(a.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _alignment = value);
+                },
+                validator: (value) => value == null ? 'Selecione um alinhamento' : null,
+              ),
+
+              const SizedBox(height: 16),
               /// BOTÕES
               Row(
                 children: [
                   Expanded(
                     child: Watch((_) {
-                      final isLoading = _vmCharacter
-                          .commands
-                          .createCharacterCommand
-                          .isExecuting
-                          .value;
+                      final isLoading =
+                        _vmCharacter.commands.createCharacterCommand.isExecuting.value ||
+                        _vmCharacter.commands.updateCharacterCommand.isExecuting.value;
 
                       return ElevatedButton(
                         onPressed: isLoading ? null : _salvar,
@@ -190,15 +255,6 @@ class _CharacterCreateViewState extends State<CharacterCreateView> {
                       );
                     }),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _excluir,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red),
-                      child: const Text('EXCLUIR'),
-                    ),
-                  )
                 ],
               )
             ],
